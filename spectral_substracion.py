@@ -30,7 +30,7 @@ def add_noise(samples, Fs, noise_level=0.01):
     zeros = np.zeros(Fs)
     signal_noised = np.hstack((zeros, samples))
     signal_noised += noise
-    show_signal(signal_noised)
+    # show_signal(signal_noised)
     return signal_noised
 
 
@@ -49,14 +49,14 @@ def get_frame(y, frames, N, i):
 def power_spectral_density_estimation_of_the_noise(y, Fs, N):
     z = y[:Fs]
     frames = int(Fs/N)
-    SZ = np.zeros(int(N/2))
+    SZ = np.zeros(int(N/2)+1)
     for i in range(frames):
         zi = z[i*N: (i+1)*N]
         Zi = np.fft.fft(zi, N)
         # print(Zi[:3])
         Ziabs = np.abs(Zi)
         # print(Ziabs[:3])
-        SZi = np.power(Ziabs[:int(N/2)], 2)/N
+        SZi = np.power(Ziabs[:int(N/2)+1], 2)/N
         # print(SZi[:3])
         # exit()
         SZ += SZi
@@ -67,7 +67,7 @@ def power_spectral_density_estimation_of_the_noise(y, Fs, N):
 
 def power_spectral_density_estimation_of_the_noisy_signal(Yi, N):
     Yiabs = np.abs(Yi)
-    SYi = np.power(Yiabs[:int(N/2)], 2)/N
+    SYi = np.power(Yiabs[:int(N/2)+1], 2)/N
     # show_signal(SYi)
     return SYi
 
@@ -80,7 +80,7 @@ def power_spectral_density_function_of_the_noiseless_signal(SYi, SZ):
 
 def create_denoising_filter(SXi, SYi):
     Ail = np.sqrt(np.divide(SXi, SYi))
-    Air = np.flip(Ail, 0)
+    Air = np.flip(Ail[1:-1], 0)
     Ai = np.hstack((Ail, Air))
     # show_signal(Ai)
     return Ai
@@ -137,5 +137,5 @@ if __name__ == "__main__":
 
 
     y, Fs = load_audios(noisy_path)
-    xe = power_spectral_substraction(y, Fs, 1024)
+    xe = power_spectral_substraction(y, Fs, 16)
     save_audios(output_path, xe, Fs)
