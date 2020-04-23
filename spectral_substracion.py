@@ -32,6 +32,28 @@ def add_noise(samples, clear_noise_end, noise_level=0.1):
     return signal_noised
 
 
+def add_noise_multichannel(samples, clear_noise_end, noise_level=0.1):
+    h, w = np.transpose(samples).shape
+    signal_noised = np.zeros((h, w+clear_noise_end))
+    # print("samples", samples.shape)
+    for i in range(samples.ndim):
+        signal_noisedi = add_noise(samples[:, i], clear_noise_end, noise_level)
+        signal_noised[i, :] = signal_noisedi
+
+    # print("signal_noised", signal_noised.shape)
+    signal_noised = np.transpose(signal_noised)
+    # print("signal_noised", signal_noised.shape)
+    return signal_noised
+
+
+def add_noise_foyer(samples, clear_noise_end, noise_level=0.1):
+    if samples.ndim > 1:
+        signal_noised = add_noise_multichannel(samples, clear_noise_end, noise_level)
+    else:
+        signal_noised = add_noise(samples, clear_noise_end, noise_level)
+    return signal_noised
+
+
 def get_frame(y, clear_noise_end, frames, N, i):
     padding_size = 0
     if i==int(frames)-1:
@@ -116,12 +138,33 @@ def power_spectral_substraction(y, clear_noise_end, N=512):
     return xe
 
 
+def power_spectral_substraction_multichannel(y, clear_noise_end, N=512):
+    h, w = np.transpose(y).shape
+    xe = np.zeros((h, w-clear_noise_end))
+
+    for i in range(xe.shape[0]):
+        xei = power_spectral_substraction(y[:, i], clear_noise_end, N)
+
+        xe[i,:] = xei
+    xe = np.transpose(xe)
+    return xe
+
+
+def power_spectral_substraction_foyer(y, clear_noise_end, N=512):
+    if y.ndim > 1:
+        xe = power_spectral_substraction_multichannel(y, clear_noise_end, N)
+    else:
+        xe = power_spectral_substraction(y, clear_noise_end, N)
+    return xe
+
+
 if __name__ == "__main__":
     # printing = True
     # show = False
     # save = False
 
-    input_path  = "KJW_ŚR_clip.wav"
+    input_path  = "KJW_ŚR_mono.wav"
+    # input_path  = "KJW_ŚR_clip.wav"
     noisy_path = "noisy.wav"
     output_path = "filtered.wav"
 
@@ -129,10 +172,10 @@ if __name__ == "__main__":
 
     clear_noise_end = Fs
 
-    y = add_noise(x, clear_noise_end)
+    y = add_noise_foyer(x, clear_noise_end)
     save_audios(noisy_path, y, Fs)
 
 
     y, Fs = load_audios(noisy_path)
-    xe = power_spectral_substraction(y, clear_noise_end, 1024)
+    xe = power_spectral_substraction_foyer(y, clear_noise_end, 1024)
     save_audios(output_path, xe, Fs)
