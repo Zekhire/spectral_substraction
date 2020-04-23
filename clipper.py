@@ -20,8 +20,10 @@ def cut_audio_clip(input_path, start, end, output_path):
 
 
 if __name__ == "__main__":
-    input_path = "./audio1_orig.wav"
-    output_path = "audio1_clip.wav"
+    #input_path = "./audio1_orig.wav"
+    input_path = "./KJW_ŚR.wav"
+    #output_path = "audio1_clip.wav"
+    output_path = "./KJW_ŚR_clip.wav"
     number_of_samples = 5000
     start = 0
     end = 60

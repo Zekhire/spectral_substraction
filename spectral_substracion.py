@@ -23,42 +23,36 @@ def show_signal(samples):
     plt.show()
 
 
-def add_noise(samples, Fs, noise_level=0.01):
-    noise = np.random.normal(0, noise_level, len(samples)+Fs)
-    # print(min(noise), max(noise))
-    # exit()
-    zeros = np.zeros(Fs)
+def add_noise(samples, clear_noise_end, noise_level=0.1):
+    noise = np.random.normal(0, noise_level, len(samples)+clear_noise_end)
+    zeros = np.zeros(clear_noise_end)
     signal_noised = np.hstack((zeros, samples))
     signal_noised += noise
     # show_signal(signal_noised)
     return signal_noised
 
 
-def get_frame(y, frames, N, i):
+def get_frame(y, clear_noise_end, frames, N, i):
     padding_size = 0
     if i==int(frames)-1:
-        yi = y[Fs+i*N:]
+        yi = y[clear_noise_end+i*N:]
         padding_size = N-len(yi)
         zeros = np.zeros(padding_size)
         yi = np.hstack((yi, zeros))
     else:
-        yi = y[Fs+i*N: Fs+(i+1)*N]
+        yi = y[clear_noise_end+i*N: clear_noise_end+(i+1)*N]
     return yi, padding_size
 
 
-def power_spectral_density_estimation_of_the_noise(y, Fs, N):
-    z = y[:Fs]
-    frames = int(Fs/N)
+def power_spectral_density_estimation_of_the_noise(y, clear_noise_end, N):
+    z = y[:clear_noise_end]
+    frames = int(clear_noise_end/N)
     SZ = np.zeros(int(N/2)+1)
     for i in range(frames):
         zi = z[i*N: (i+1)*N]
         Zi = np.fft.fft(zi, N)
-        # print(Zi[:3])
         Ziabs = np.abs(Zi)
-        # print(Ziabs[:3])
         SZi = np.power(Ziabs[:int(N/2)+1], 2)/N
-        # print(SZi[:3])
-        # exit()
         SZ += SZi
     SZ = SZ/frames                                 # V
     # show_signal(SZ)
@@ -96,18 +90,18 @@ def evaluate_denoised_signal(Ai, Yi):       # V
     return Xi
 
 
-def power_spectral_substraction(y, Fs, N=512):
-    SZ = power_spectral_density_estimation_of_the_noise(y, Fs, N)
+def power_spectral_substraction(y, clear_noise_end, N=512):
+    SZ = power_spectral_density_estimation_of_the_noise(y, clear_noise_end, N)
     # N1 = N
-    frames = len(y[Fs:])/N
+    frames = len(y[clear_noise_end:])/N
     if int(frames) - frames < 0:
         frames = int(frames) + 1
 
-    xe = np.zeros(len(y)-Fs)
+    xe = np.zeros(len(y)-clear_noise_end)
 
     for i in range(int(frames)):
         print("frame:", i)
-        yi, padding_size = get_frame(y, frames, N, i)
+        yi, padding_size = get_frame(y, clear_noise_end, frames, N, i)
         Yi = np.fft.fft(yi, N)                                                      # v
         SYi = power_spectral_density_estimation_of_the_noisy_signal(Yi, N)      
         SXi = power_spectral_density_function_of_the_noiseless_signal(SYi, SZ)
@@ -127,15 +121,18 @@ if __name__ == "__main__":
     # show = False
     # save = False
 
-    input_path  = "audio1_clip.wav"
+    input_path  = "KJW_ŚR_clip.wav"
     noisy_path = "noisy.wav"
     output_path = "filtered.wav"
 
     x, Fs = load_audios(input_path)
-    y = add_noise(x, Fs)
+
+    clear_noise_end = Fs
+
+    y = add_noise(x, clear_noise_end)
     save_audios(noisy_path, y, Fs)
 
 
     y, Fs = load_audios(noisy_path)
-    xe = power_spectral_substraction(y, Fs, 16)
+    xe = power_spectral_substraction(y, clear_noise_end, 1024)
     save_audios(output_path, xe, Fs)
