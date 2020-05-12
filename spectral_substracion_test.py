@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 import spectral_substracion
 
+#TODO add tests for complex numbers and for float numbers!
 
 class Power_spectral_density_estimation_of_the_noise(unittest.TestCase):
     def test_values(self):
