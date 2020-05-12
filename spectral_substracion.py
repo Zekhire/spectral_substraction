@@ -28,21 +28,16 @@ def add_noise(samples, clear_noise_end, noise_level=0.1):
     zeros = np.zeros(clear_noise_end)
     signal_noised = np.hstack((zeros, samples))
     signal_noised += noise
-    # show_signal(signal_noised)
     return signal_noised
 
 
 def add_noise_multichannel(samples, clear_noise_end, noise_level=0.1):
     h, w = np.transpose(samples).shape
     signal_noised = np.zeros((h, w+clear_noise_end))
-    # print("samples", samples.shape)
     for i in range(samples.ndim):
         signal_noisedi = add_noise(samples[:, i], clear_noise_end, noise_level)
         signal_noised[i, :] = signal_noisedi
-
-    # print("signal_noised", signal_noised.shape)
     signal_noised = np.transpose(signal_noised)
-    # print("signal_noised", signal_noised.shape)
     return signal_noised
 
 
@@ -94,27 +89,23 @@ def power_spectral_density_function_of_the_noiseless_signal(SYi, SZ):
     return SXi
 
 
-def create_denoising_filter(SXi, SYi):
+def create_denoising_filter(SXi, SYi, eps=1e-6):
+    if eps is not None:
+        SYi[SYi<eps] = eps
     Ail = np.sqrt(np.divide(SXi, SYi))
     Air = np.flip(Ail[1:-1], 0)
     Ai = np.hstack((Ail, Air))
-    # show_signal(Ai)
     return Ai
 
 
 def evaluate_denoised_signal(Ai, Yi):       # V
     Xi = Ai*Yi
-    # print(Ai[:5])
-    # print(Yi[:5])
-    # print(Xi[:5])
-    # exit()
-
     return Xi
 
 
 def power_spectral_substraction(y, clear_noise_end, N=512):
     SZ = power_spectral_density_estimation_of_the_noise(y, clear_noise_end, N)
-    # N1 = N
+
     frames = len(y[clear_noise_end:])/N
     if int(frames) - frames < 0:
         frames = int(frames) + 1
@@ -141,10 +132,8 @@ def power_spectral_substraction(y, clear_noise_end, N=512):
 def power_spectral_substraction_multichannel(y, clear_noise_end, N=512):
     h, w = np.transpose(y).shape
     xe = np.zeros((h, w-clear_noise_end))
-
-    for i in range(xe.shape[0]):
+    for i in range(y.ndim):
         xei = power_spectral_substraction(y[:, i], clear_noise_end, N)
-
         xe[i,:] = xei
     xe = np.transpose(xe)
     return xe
