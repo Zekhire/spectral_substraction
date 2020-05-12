@@ -5,13 +5,20 @@ import numpy as np
 
 def load_audios(input_path):
     audio = wave.read(input_path)
-    samples = np.array(audio[1], dtype=float)
+    samples = np.array(audio[1], dtype=np.float32)
     Fs = audio[0]
     return samples, Fs
 
+def scaling_down(x):
+    x_scaled = x/np.max(abs(x))
+    return x_scaled
 
-def save_audios(output_path, samples, Fs):
-    wave.write(output_path, Fs, samples)
+def save_audios(output_path, samples, Fs, scaling=True):
+    if scaling:
+        samples_scaled = scaling_down(samples)
+    else:
+        samples_scaled = samples
+    wave.write(output_path, Fs, samples_scaled)
 
 
 def show_signal(samples):
@@ -23,29 +30,32 @@ def show_signal(samples):
     plt.show()
 
 
-def add_noise(samples, clear_noise_end, noise_level=0.1):
-    noise = np.random.normal(0, noise_level, len(samples)+clear_noise_end)
-    zeros = np.zeros(clear_noise_end)
+def add_noise(samples, clear_noise_length, noise_level=0.1):
+    print(samples)
+    noise = np.array(np.random.normal(0, noise_level, len(samples)+clear_noise_length), dtype=type(samples[0]))
+    # noise = np.random.randint(0, noise_level, len(samples)+clear_noise_length, np.int16)
+    zeros = np.zeros(clear_noise_length)
     signal_noised = np.hstack((zeros, samples))
     signal_noised += noise
+    print(signal_noised[clear_noise_length:])
     return signal_noised
 
 
-def add_noise_multichannel(samples, clear_noise_end, noise_level=0.1):
+def add_noise_multichannel(samples, clear_noise_length, noise_level=0.1):
     h, w = np.transpose(samples).shape
-    signal_noised = np.zeros((h, w+clear_noise_end))
+    signal_noised = np.zeros((h, w+clear_noise_length))
     for i in range(samples.ndim):
-        signal_noisedi = add_noise(samples[:, i], clear_noise_end, noise_level)
+        signal_noisedi = add_noise(samples[:, i], clear_noise_length, noise_level)
         signal_noised[i, :] = signal_noisedi
     signal_noised = np.transpose(signal_noised)
     return signal_noised
 
 
-def add_noise_foyer(samples, clear_noise_end, noise_level=0.1):
+def add_noise_foyer(samples, clear_noise_length, noise_level=0.1):
     if samples.ndim > 1:
-        signal_noised = add_noise_multichannel(samples, clear_noise_end, noise_level)
+        signal_noised = add_noise_multichannel(samples, clear_noise_length, noise_level)
     else:
-        signal_noised = add_noise(samples, clear_noise_end, noise_level)
+        signal_noised = add_noise(samples, clear_noise_length, noise_level)
     return signal_noised
 
 
@@ -113,7 +123,7 @@ def power_spectral_substraction(y, clear_noise_end, N=512):
     xe = np.zeros(len(y)-clear_noise_end)
 
     for i in range(int(frames)):
-        print("frame:", i)
+        # print("frame:", i)
         yi, padding_size = get_frame(y, clear_noise_end, frames, N, i)
         Yi = np.fft.fft(yi, N)                                                      # v
         SYi = power_spectral_density_estimation_of_the_noisy_signal(Yi, N)      
@@ -152,19 +162,24 @@ if __name__ == "__main__":
     # show = False
     # save = False
 
-    input_path  = "KJW_ŚR_mono.wav"
+    input_path  = "KJW_ŚR_stereo.wav"
+    input_path  = "KJW_SR_steresadsadsao.wav"
+    # input_path  = "KJW_ŚR_stereo16pcm.wav"
+    # input_path  = "KJW_ŚR_stereo32PCM.wav"
+    # input_path  = "KJW_ŚR_stereo_why.wav"
+    input_path  = "KJW_ŚR_stereo.wav"
     # input_path  = "KJW_ŚR_clip.wav"
     noisy_path = "noisy.wav"
     output_path = "filtered.wav"
 
     x, Fs = load_audios(input_path)
 
-    clear_noise_end = Fs
+    clear_noise_length = Fs
 
-    y = add_noise_foyer(x, clear_noise_end)
+    y = add_noise_foyer(x, clear_noise_length)
     save_audios(noisy_path, y, Fs)
 
 
     y, Fs = load_audios(noisy_path)
-    xe = power_spectral_substraction_foyer(y, clear_noise_end, 1024)
+    xe = power_spectral_substraction_foyer(y, clear_noise_length, 1024)
     save_audios(output_path, xe, Fs)
