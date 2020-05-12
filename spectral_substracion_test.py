@@ -3,7 +3,7 @@ import numpy as np
 import spectral_substracion
 
 
-class Test_power_spectral_density_estimation_of_the_noise(unittest.TestCase):
+class Power_spectral_density_estimation_of_the_noise(unittest.TestCase):
     def test_values(self):
         pass
     def test_len(self):
@@ -11,75 +11,113 @@ class Test_power_spectral_density_estimation_of_the_noise(unittest.TestCase):
 
 
 
-
-class Test_power_spectral_density_estimation_of_the_noisy_signal(unittest.TestCase):
+class Power_spectral_density_estimation_of_the_noisy_signal(unittest.TestCase):
     def test_values(self):
-        N=4
-        Yi = np.array([1,-2,3,4])
-        SYi = np.array([0.25,1])
-        self.assertListEqual(list(spectral_substracion.power_spectral_density_estimation_of_the_noisy_signal(Yi, N)), list(SYi))
+        # arrange
+        N = 4
+        Yi = np.array([1, -2, 3, 4])
+        SYi_true = np.array([0.25, 1, 2.25])
 
-        Yi = np.array([-16,-2,32223123,42111])
-        SYi = np.array([64,1])
-        self.assertListEqual(list(spectral_substracion.power_spectral_density_estimation_of_the_noisy_signal(Yi, N)), list(SYi))
+        # act
+        SYi = spectral_substracion.power_spectral_density_estimation_of_the_noisy_signal(Yi, N)
 
+        # assert
+        self.assertListEqual(list(SYi_true), list(SYi))
 
 
     def test_len(self):
+        # arrange
         N=4
         Yi = np.array([1,2,3,4])
-        self.assertEqual(len(spectral_substracion.power_spectral_density_estimation_of_the_noisy_signal(Yi, N)), 2)
+        NYi_true = 3
+
+        # act
+        NYi = len(spectral_substracion.power_spectral_density_estimation_of_the_noisy_signal(Yi, N))
+
+        # assert
+        self.assertEqual(NYi_true, NYi)
 
 
-    
 
-
-class Test_power_spectral_density_function_of_the_noiseless_signal(unittest.TestCase):
+class Power_spectral_density_function_of_the_noiseless_signal(unittest.TestCase):
     def test_values(self):
-        SYi = np.array([5,6,2,10])
-        SZ = np.array([1,2,2,5])
-        SXi = np.array([4,4,0,5])
-        self.assertListEqual(list(spectral_substracion.power_spectral_density_function_of_the_noiseless_signal(SYi, SZ)), list(SXi))
+        # arrange
+        SYi = np.array([5, 6, 2, 10])
+        SZ = np.array([1, 2, 2, 5])
+        SXi_true = np.array([4, 4, 0, 5])
+
+        # act
+        SXi = spectral_substracion.power_spectral_density_function_of_the_noiseless_signal(SYi, SZ)
+
+        #assert
+        self.assertListEqual(list(SXi_true), list(SXi))
+ 
+ 
+    def test_len(self):
+        # arrange
+        SYi = np.array([1, 2, 3, 4])
+        SZ = np.array([4, 3, 2, 1])
+        NXi_true = 4
         
-        SYi = np.array([5,6,20,10])
-        SZ = np.array([10,2,18,50])
-        SXi = np.array([0,4,2,0])
-        self.assertListEqual(list(spectral_substracion.power_spectral_density_function_of_the_noiseless_signal(SYi, SZ)), list(SXi))
+        # act
+        NXi = len(spectral_substracion.power_spectral_density_function_of_the_noiseless_signal(SYi, SZ))
+
+        # assert
+        self.assertEqual(NXi_true, NXi)
+
+
+
+class Create_denoising_filter(unittest.TestCase):
+    def test_values(self):
+        # arrange
+        SXi = np.array([72, 64, 16, 50])
+        SYi = np.array([2, 4, 4, 2])
+        Ai_true = np.array([6, 4, 2, 5, 2, 4])
+
+        # act
+        Ai = spectral_substracion.create_denoising_filter(SXi, SYi)
+
+        # assert
+        self.assertListEqual(list(Ai_true), list(Ai))
+
 
     def test_len(self):
-        SYi = np.array([1,2,3,4])
-        SZ = np.array([4,3,2,1])
-        self.assertEqual(len(spectral_substracion.power_spectral_density_function_of_the_noiseless_signal(SYi, SZ)), 4)
+        # arrange
+        SXi = np.array([72, 64, 16, 50])
+        SYi = np.array([2, 4, 4, 2])
+        NAi_true = 6
+
+        # act
+        NAi = len(spectral_substracion.create_denoising_filter(SXi, SYi))
+
+        # assert
+        self.assertEqual(NAi_true, NAi)
 
 
 
-class Test_create_denoising_filter(unittest.TestCase):
+
+class Evaluate_denoised_signal(unittest.TestCase):
     def test_values(self):
-        SXi = np.array([72,64,16,50])
-        SYi = np.array([2,4,4,2])
-        Ai = np.array([np.sqrt(36), np.sqrt(16), np.sqrt(4), np.sqrt(25),
-                        np.sqrt(25), np.sqrt(4), np.sqrt(16), np.sqrt(36)])
-
-        self.assertListEqual(list(spectral_substracion.create_denoising_filter(SXi, SYi)), list(Ai))
-
-    def test_len(self):
-        SXi = np.array([72,64,16,50])
-        SYi = np.array([2,4,4,2])
-        self.assertEqual(len(spectral_substracion.create_denoising_filter(SXi, SYi)), 8)
-
-
-
-
-class Test_evaluate_denoised_signal(unittest.TestCase):
-    def test_values(self):
+        # arrange
         Ai = np.array([1,2,9,4])
         Yi = np.array([5,3,2,3])
-        Xi = np.array([5,6,18,12])
+        Xi_true = np.array([5,6,18,12])
 
-        self.assertListEqual(list(spectral_substracion.evaluate_denoised_signal(Ai, Yi)),list(Xi))
+        # act
+        Xi = spectral_substracion.evaluate_denoised_signal(Ai, Yi)
+
+        # assert
+        self.assertListEqual(list(Xi_true), list(Xi))
+
 
     def test_len(self):
+        # arrange
         Ai = np.array([1,2,9,4])
         Yi = np.array([5,3,2,3])
+        Xi_true = 4
 
-        self.assertEqual(len(spectral_substracion.evaluate_denoised_signal(Ai, Yi)), 4)
+        # act
+        Xi = len(spectral_substracion.evaluate_denoised_signal(Ai, Yi))
+
+        # assert
+        self.assertEqual(Xi_true, Xi)
