@@ -203,10 +203,10 @@ if __name__ == "__main__":
     noisy_path = "noisy.wav"
     output_path = "filtered.wav"
 
-    N = 513
+    N = 257
     general = True
     overlap = int((N+1)/2)
-    alfa = 1.5
+    alfa = 6
     beta = 2
 
     x, Fs = load_audios(input_path)
