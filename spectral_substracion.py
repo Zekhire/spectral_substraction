@@ -157,8 +157,7 @@ def generalized_spectral_substraction(y, clear_noise_end, N=512, general=True, o
         print("frame:", i, frames, N, Nx, (N-overlap)*frames)
         yi, padding_size = get_frame(y, clear_noise_end, frames, N, i, overlap)
         Yi = np.fft.fft(yi, N)                                                      # v
-        Yi[Yi< 1e-6] = 1e-6
-
+        
         if general:
             Xi = spectral_substraction(Yi, Zi, alfa, beta)
             xei = np.fft.ifft(Xi, N).real                                           # v
