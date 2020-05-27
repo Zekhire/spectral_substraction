@@ -20,7 +20,6 @@ def save_audios(output_path, samples, Fs, scaling=True):
         samples_scaled = samples
     wave.write(output_path, Fs, samples_scaled)
 
-
 def show_signal(samples):
     t = np.ones(len(samples))
     t = np.cumsum(t)
@@ -40,7 +39,6 @@ def add_noise(samples, clear_noise_length, noise_level=0.1):
     print(signal_noised[clear_noise_length:])
     return signal_noised
 
-
 def add_noise_multichannel(samples, clear_noise_length, noise_level=0.1):
     h, w = np.transpose(samples).shape
     signal_noised = np.zeros((h, w+clear_noise_length))
@@ -49,7 +47,6 @@ def add_noise_multichannel(samples, clear_noise_length, noise_level=0.1):
         signal_noised[i, :] = signal_noisedi
     signal_noised = np.transpose(signal_noised)
     return signal_noised
-
 
 def add_noise_foyer(samples, clear_noise_length, noise_level=0.1):
     if samples.ndim > 1:
@@ -113,7 +110,7 @@ def evaluate_denoised_signal(Ai, Yi):       # V
     return Xi
 
 
-def power_spectral_substraction(y, clear_noise_end, N=512):
+def power_spectral_substraction(y, clear_noise_end, N=512, general=True, alfa=1.5, beta=2):
     SZ = power_spectral_density_estimation_of_the_noise(y, clear_noise_end, N)
 
     frames = len(y[clear_noise_end:])/N
@@ -139,22 +136,96 @@ def power_spectral_substraction(y, clear_noise_end, N=512):
     return xe
 
 
-def power_spectral_substraction_multichannel(y, clear_noise_end, N=512):
-    h, w = np.transpose(y).shape
-    xe = np.zeros((h, w-clear_noise_end))
-    for i in range(y.ndim):
-        xei = power_spectral_substraction(y[:, i], clear_noise_end, N)
-        xe[i,:] = xei
-    xe = np.transpose(xe)
-    return xe
+
+def generalized_spectral_density_estimation_of_the_noise(y, clear_noise_end, N):
+    z = y[:clear_noise_end]
+    frames = int(clear_noise_end/N)
+    Z = np.zeros(N)
+    for i in range(frames):
+        zi = z[i*N: (i+1)*N]
+        Zi = np.fft.fft(zi, N)
+        Ziabs = np.abs(Zi)
+        Z += Ziabs
+    Z = Z/frames                                 # V
+    # show_signal(SZ)
+    return Z
 
 
-def power_spectral_substraction_foyer(y, clear_noise_end, N=512):
-    if y.ndim > 1:
-        xe = power_spectral_substraction_multichannel(y, clear_noise_end, N)
+def get_frame_overlap(y, clear_noise_end, frames, N, i, overlap):
+    padding_size = 0
+    if clear_noise_end+i*(N-overlap)+N > len(y):
+        print("wszedłem")
+        yi = y[clear_noise_end+i*(N-overlap):]
+        padding_size = N-len(yi)
+        zeros = np.zeros(padding_size)
+        yi = np.hstack((yi, zeros))
     else:
-        xe = power_spectral_substraction(y, clear_noise_end, N)
+        yi = y[clear_noise_end+i*(N-overlap): clear_noise_end+i*(N-overlap)+N]
+    return yi, padding_size
+
+
+def get_number_of_frames(Nx, N, overlap):
+    frames = int(np.ceil(Nx/(N-overlap)))
+    return frames
+
+def window(x, N):
+    t = np.arange(0, N)
+    xwi = x * (0.5)*(1-np.cos(  np.pi*t/((N-1)/2)  ))
+    return xwi
+
+def generalized_spectral_substraction(Yi, Zi, alfa, beta):
+    denominator = np.power(abs(Yi), beta)
+    nominator = denominator - alfa*np.power(abs(Zi), beta)
+    nominator[nominator<0] = 0
+    Xi = np.power(nominator/denominator, 1/beta)*Yi
+    return Xi
+
+def generalized_spectral_substraction_foyer(y, clear_noise_end, N=513, overlap=257, alfa=1.5, beta=2):
+    Zi = generalized_spectral_density_estimation_of_the_noise(y, clear_noise_end, N)
+
+    Nx = len(y)-clear_noise_end
+    frames = get_number_of_frames(Nx, N, overlap)
+
+    xe = np.zeros(Nx)
+
+    for i in range(int(frames)):
+        print("frame:", i, frames, N, Nx, (N-overlap)*frames)
+
+        yi, padding_size = get_frame_overlap(y, clear_noise_end, frames, N, i, overlap)
+        Yi = np.fft.fft(yi, N)                                                              # v
+        Xi = generalized_spectral_substraction(Yi, Zi, alfa, beta)
+        xei = np.fft.ifft(Xi, N).real                                                       # v
+        xwi = window(xei, N)
+        if clear_noise_end+i*(N-overlap)+N > len(y):
+            xe[i*(N-overlap): i*(N-overlap)+(N-padding_size)] += xwi[:-padding_size]
+        else:
+            # print(xe[i*(N-overlap): i*(N-overlap)+2*N].shape, xwi.shape)
+            xe[i*(N-overlap): i*(N-overlap)+N] += xwi
+
     return xe
+
+
+def spectral_substraction_foyer(y, clear_noise_end, N=512, general=True, overlap=257, alfa=2, beta=2):
+    if y.ndim > 1:
+        # several channels
+        h, w = np.transpose(y).shape
+        xe = np.zeros((h, w-clear_noise_end))
+        for i in range(y.ndim):
+            if general:
+                xei = generalized_spectral_substraction_foyer(y[:, i], clear_noise_end, N, overlap, alfa, beta)
+            else:
+                xei = power_spectral_substraction(y[:, i], clear_noise_end, N)
+            xe[i,:] = xei
+        xe = np.transpose(xe)
+    else:
+        # one channel
+        if general:
+            xe = generalized_spectral_substraction_foyer(y, clear_noise_end, N, overlap, alfa, beta)
+        else:
+            xe = power_spectral_substraction(y, clear_noise_end, N)
+    return xe
+
+
 
 
 if __name__ == "__main__":
@@ -162,24 +233,23 @@ if __name__ == "__main__":
     # show = False
     # save = False
 
+
     input_path  = "KJW_ŚR_stereo.wav"
-    input_path  = "KJW_SR_steresadsadsao.wav"
-    # input_path  = "KJW_ŚR_stereo16pcm.wav"
-    # input_path  = "KJW_ŚR_stereo32PCM.wav"
-    # input_path  = "KJW_ŚR_stereo_why.wav"
-    input_path  = "KJW_ŚR_stereo.wav"
-    # input_path  = "KJW_ŚR_clip.wav"
     noisy_path = "noisy.wav"
     output_path = "filtered.wav"
 
-    x, Fs = load_audios(input_path)
+    N = 513
+    general = True
+    overlap = int((N+1)/2)
+    alfa = 6
+    beta = 2.5
 
+    x, Fs = load_audios(input_path)
     clear_noise_length = Fs
 
     y = add_noise_foyer(x, clear_noise_length)
     save_audios(noisy_path, y, Fs)
 
-
     y, Fs = load_audios(noisy_path)
-    xe = power_spectral_substraction_foyer(y, clear_noise_length, 1024)
+    xe = spectral_substraction_foyer(y, clear_noise_length, N, general, overlap, alfa, beta)
     save_audios(output_path, xe, Fs)
