@@ -30,13 +30,11 @@ def show_signal(samples):
 
 
 def add_noise(samples, clear_noise_length, noise_level=0.1):
-    print(samples)
     noise = np.array(np.random.normal(0, noise_level, len(samples)+clear_noise_length), dtype=type(samples[0]))
     # noise = np.random.randint(0, noise_level, len(samples)+clear_noise_length, np.int16)
     zeros = np.zeros(clear_noise_length)
     signal_noised = np.hstack((zeros, samples))
     signal_noised += noise
-    print(signal_noised[clear_noise_length:])
     return signal_noised
 
 def add_noise_multichannel(samples, clear_noise_length, noise_level=0.1):
@@ -153,8 +151,7 @@ def generalized_spectral_substraction(y, clear_noise_end, N=512, general=True, o
     xe = np.zeros(Nx)
 
     for i in range(int(frames)):
-        # print("frame:", i)
-        print("frame:", i, frames, N, Nx, (N-overlap)*frames)
+        print("frame:", i)
         yi, padding_size = get_frame(y, clear_noise_end, frames, N, i, overlap)
         Yi = np.fft.fft(yi, N)                                                      # v
         
@@ -203,10 +200,10 @@ if __name__ == "__main__":
     noisy_path = "noisy.wav"
     output_path = "filtered.wav"
 
-    N = 257
+    N = 513
     general = True
     overlap = int((N+1)/2)
-    alfa = 6
+    alfa = 4
     beta = 2
 
     x, Fs = load_audios(input_path)
