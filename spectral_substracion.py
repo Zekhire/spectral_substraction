@@ -9,9 +9,11 @@ def load_audios(input_path):
     Fs = audio[0]
     return samples, Fs
 
+
 def scaling_down(x):
     x_scaled = x/np.max(abs(x))
     return x_scaled
+
 
 def save_audios(output_path, samples, Fs, scaling=True):
     if scaling:
@@ -19,6 +21,7 @@ def save_audios(output_path, samples, Fs, scaling=True):
     else:
         samples_scaled = samples
     wave.write(output_path, Fs, samples_scaled)
+
 
 def show_signal(samples):
     t = np.ones(len(samples))
@@ -31,11 +34,11 @@ def show_signal(samples):
 
 def add_noise(samples, clear_noise_length, noise_level=0.1):
     noise = np.array(np.random.normal(0, noise_level, len(samples)+clear_noise_length), dtype=type(samples[0]))
-    # noise = np.random.randint(0, noise_level, len(samples)+clear_noise_length, np.int16)
     zeros = np.zeros(clear_noise_length)
     signal_noised = np.hstack((zeros, samples))
     signal_noised += noise
     return signal_noised
+
 
 def add_noise_multichannel(samples, clear_noise_length, noise_level=0.1):
     h, w = np.transpose(samples).shape
@@ -46,15 +49,13 @@ def add_noise_multichannel(samples, clear_noise_length, noise_level=0.1):
     signal_noised = np.transpose(signal_noised)
     return signal_noised
 
-def add_noise_foyer(samples, clear_noise_length, noise_level=0.1):
+
+def add_noise_foyer(samples, clear_noise_length, noise_level=0.005):
     if samples.ndim > 1:
         signal_noised = add_noise_multichannel(samples, clear_noise_length, noise_level)
     else:
         signal_noised = add_noise(samples, clear_noise_length, noise_level)
     return signal_noised
-
-
-
 
 
 def get_number_of_frames(Nx, N, overlap):
@@ -74,7 +75,7 @@ def get_frame(y, clear_noise_end, frames, N, i, overlap):
     return yi, padding_size
 
 
-def generalized_spectral_density_estimation_of_the_noise(y, clear_noise_end, N, general):
+def generalized_spectral_density_estimation_of_the_noise(y, clear_noise_end, N, general, beta):
     z = y[:clear_noise_end]
     frames = int(clear_noise_end/N)
 
@@ -87,9 +88,8 @@ def generalized_spectral_density_estimation_of_the_noise(y, clear_noise_end, N, 
         zi = z[i*N: (i+1)*N]
         Zi = np.fft.fft(zi, N)
         Ziabs = np.abs(Zi)
-
         if general:
-            Z += Ziabs
+            Z += np.power(Ziabs, beta)
         else:
             Z += np.power(Ziabs[:int(N/2)+1], 2)/N
 
@@ -97,16 +97,19 @@ def generalized_spectral_density_estimation_of_the_noise(y, clear_noise_end, N, 
     # show_signal(SZ)
     return Z
 
+
 def power_spectral_density_estimation_of_the_noisy_signal(Yi, N):
     Yiabs = np.abs(Yi)
     SYi = np.power(Yiabs[:int(N/2)+1], 2)/N
     # show_signal(SYi)
     return SYi
 
+
 def power_spectral_density_function_of_the_noiseless_signal(SYi, SZ):
     SXi = SYi - SZ
     SXi[SXi<0] = 0
     return SXi
+
 
 def create_denoising_filter(SXi, SYi, eps=1e-6):
     if eps is not None:
@@ -116,18 +119,21 @@ def create_denoising_filter(SXi, SYi, eps=1e-6):
     Ai = np.hstack((Ail, Air))
     return Ai
 
+
 def evaluate_denoised_signal(Ai, Yi):       # V
     Xi = Ai*Yi
     return Xi
+
 
 def window(x, N):
     t = np.arange(0, N)
     xwi = x * (0.5)*(1-np.cos(  np.pi*t/((N-1)/2)  ))
     return xwi
 
+
 def spectral_substraction(Yi, Zi, alfa, beta):
     denominator = np.power(abs(Yi), beta)
-    nominator = denominator - alfa*np.power(abs(Zi), beta)
+    nominator = denominator - alfa*abs(Zi)
     nominator[nominator<0] = 0
     Xi = np.power(nominator/denominator, 1/beta)*Yi
     return Xi
@@ -142,7 +148,7 @@ def insert_frame(xe, xei, clear_noise_end, N, overlap, frames, i, padding_size):
 
 
 def generalized_spectral_substraction(y, clear_noise_end, N=512, general=True, overlap=257, alfa=1.5, beta=2):
-    Zi = generalized_spectral_density_estimation_of_the_noise(y, clear_noise_end, N, general)
+    Zi = generalized_spectral_density_estimation_of_the_noise(y, clear_noise_end, N, general, beta)
     if general is False:
         SZ = Zi
 
@@ -168,8 +174,6 @@ def generalized_spectral_substraction(y, clear_noise_end, N=512, general=True, o
             xei = np.fft.ifft(Xi, N).real                                               # v
 
         xe = insert_frame(xe, xei, clear_noise_end, N, overlap, frames, i, padding_size)
-
-
     return xe
 
 
@@ -196,22 +200,25 @@ def generalized_spectral_substraction_foyer(y, clear_noise_end, N=512, general=T
 
 
 if __name__ == "__main__":
-    input_path  = "KJW_ŚR_stereo.wav"
+    input_path  = "LOTR.wav"
     noisy_path = "noisy.wav"
     output_path = "filtered.wav"
 
     N = 513
     general = True
     overlap = int((N+1)/2)
-    alfa = 4
+    alfa = 8
     beta = 2
 
+
+    # Add noise (You can comment following lines so that
+    # this script will only denoise noisy audio)
     x, Fs = load_audios(input_path)
     clear_noise_length = Fs
-
     y = add_noise_foyer(x, clear_noise_length)
     save_audios(noisy_path, y, Fs)
 
+    # Denoising with spectral_substraction algorithm
     y, Fs = load_audios(noisy_path)
     xe = generalized_spectral_substraction_foyer(y, clear_noise_length, N, general, overlap, alfa, beta)
     save_audios(output_path, xe, Fs)
