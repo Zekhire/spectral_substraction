@@ -1,4 +1,4 @@
-# Spectral Substraction
+# Spectral substraction
 
 
 #### Technologies
