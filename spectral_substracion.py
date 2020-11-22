@@ -200,15 +200,16 @@ def generalized_spectral_substraction_foyer(y, clear_noise_end, N=512, general=T
 
 
 if __name__ == "__main__":
+    # Audio files paths
     input_path  = "LOTR.wav"
     noisy_path = "noisy.wav"
     output_path = "filtered.wav"
 
-    N = 513
-    general = True
-    overlap = int((N+1)/2)
-    alfa = 8
-    beta = 2
+    N = 513                     # length of windows (odd for general method, even for non general)
+    general = True              # choose if general or not general method should be used
+    overlap = int((N+1)/2)      # overlap length (for general only)
+    alfa = 8                    # parameter (for general only)
+    beta = 2                    # parameter (for general only)
 
 
     # Add noise (You can comment following lines so that

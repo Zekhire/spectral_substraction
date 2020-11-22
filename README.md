@@ -1,1 +1,1 @@
-# spectral_substraction
+# Spectral Substraction
