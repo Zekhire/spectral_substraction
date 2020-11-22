@@ -22,8 +22,8 @@ cd ..
 cd ..
 pip install -r requirements.txt
 ```
-- Set all paths for audio files in "START OF THE SCRIPT" section
-- Set all parameters in "START OF THE SCRIPT" section
+- Set all paths for audio files in "START OF THE SCRIPT" section in spectral_substraction.py script
+- Set all parameters in "START OF THE SCRIPT" section in spectral_substraction.py script
 
 
 #### Run
