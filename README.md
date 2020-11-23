@@ -8,7 +8,7 @@ Project was created and tested with:
 
 
 #### Description
-Project used to denoise noisy audio files. This project uses spectral substraction method (both general and not general version). Currently only .wav files are supported.
+Project used to denoise noisy audio files. This project uses spectral substraction method (both general and not general version). Currently only .wav files are supported. In order to this program to work, audio files should contain pure noise fragment at the beginning.
 
 
 #### Setup
